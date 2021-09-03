@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      REPOSITORY_NAME: ${{ github.event.repository.name }}
+      NEXT_PUBLIC_REPOSITORY_NAME: ${{ github.event.repository.name }}
 
     steps:
       - uses: actions/checkout@v2

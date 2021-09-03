@@ -4,4 +4,5 @@ out
 
 .next
 .DS_Store
+.vscode
 yarn-error.log

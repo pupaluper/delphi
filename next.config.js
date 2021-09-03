@@ -1,4 +1,8 @@
 module.exports = {
-  basePath: process.env.REPOSITORY_NAME && `/${process.env.REPOSITORY_NAME}`,
-  assetPrefix: process.env.REPOSITORY_NAME && `/${process.env.REPOSITORY_NAME}`,
+  basePath:
+    process.env.NEXT_PUBLIC_REPOSITORY_NAME &&
+    `/${process.env.NEXT_PUBLIC_REPOSITORY_NAME}`,
+  assetPrefix:
+    process.env.NEXT_PUBLIC_REPOSITORY_NAME &&
+    `/${process.env.NEXT_PUBLIC_REPOSITORY_NAME}`,
 };
