@@ -19,11 +19,9 @@ import * as R from "ramda";
 import { createRewardsClaiming } from "../../generated/contracts";
 import { Web3Manager } from "./Web3Manager";
 import { getAmount, getAmountsSum } from "../../utils";
-import {
-  awaitFirstNonNullableOrThrow,
-  getCurrentValueOrThrow,
-} from "../../utils/rxjs";
+import { awaitFirstNonNullableOrThrow } from "../../utils/rxjs";
 import { fromWeb3DataEvent } from "../../generated/contracts/utils/fromWeb3DataEvent";
+import { TransactionsApi } from "./TransactionsApi";
 
 type ClaimingProofs = {
   snapshot: {
@@ -99,6 +97,7 @@ const ADEL_TOKEN = new Token(ADEL_TOKEN_ADDRESS, "ADEL", 18, "eth");
 export class VestedRewardsApi {
   constructor(
     private web3Manager: Web3Manager,
+    private transactions: TransactionsApi,
     private googleSheets: GoogleSheetsApi
   ) {}
 
@@ -378,20 +377,13 @@ export class VestedRewardsApi {
       snapshot: { total },
     } = await awaitFirstNonNullableOrThrow(this.getClaimingProofs$(from));
 
-    return this.getTxContract().methods.claim(
-      {
+    return this.transactions.send(
+      this.getReadonlyContract().methods.claim.getTransaction({
         merkleRootIndex: new BN(merkleIndex),
         amountAllowedToClaim: new BN(total),
         merkleProofs,
-      },
-      { from }
+      })
     );
-  }
-
-  private getTxContract() {
-    const txWeb3 = getCurrentValueOrThrow(this.web3Manager.txWeb3$);
-
-    return createRewardsClaiming(txWeb3, REWARDS_CLAIMING_ADDRESS);
   }
 
   private getReadonlyContract() {

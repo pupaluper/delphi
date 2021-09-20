@@ -9,10 +9,14 @@ import { Contracts } from "../types";
 import { Web3Manager } from "./Web3Manager";
 import { memoize } from "../../utils/decorators";
 import { createErc20 } from "../../generated/contracts/createErc20";
-import { awaitFirst, getCurrentValueOrThrow } from "../../utils/rxjs";
+import { awaitFirst } from "../../utils/rxjs";
+import { TransactionsApi } from "./TransactionsApi";
 
 export class Erc20Api {
-  constructor(private web3Manager: Web3Manager) {}
+  constructor(
+    private web3Manager: Web3Manager,
+    private transactions: TransactionsApi
+  ) {}
 
   @memoize((...args) => R.toString(args))
   public getToken$(address: string): Observable<Token> {
@@ -90,18 +94,15 @@ export class Erc20Api {
   }
 
   public approveBase = (spender: string, amount: TokenAmount) => {
-    const txContract = this.getErc20TxContract(amount.currency.address);
+    const txContract = this.getErc20ReadonlyContract(amount.currency);
 
-    return txContract.methods.approve.getTransaction({
-      spender,
-      amount: amount.toBN(),
-    });
+    return this.transactions.send(
+      txContract.methods.approve.getTransaction({
+        spender,
+        amount: amount.toBN(),
+      })
+    );
   };
-
-  private getErc20TxContract(address: string): Contracts["erc20"] {
-    const txWeb3 = getCurrentValueOrThrow(this.web3Manager.txWeb3$);
-    return createErc20(txWeb3, address);
-  }
 
   private getErc20ReadonlyContract({
     address,

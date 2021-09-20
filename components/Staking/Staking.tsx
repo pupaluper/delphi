@@ -70,7 +70,7 @@ export const PoolDetails: React.FC<{ pool: StakingPool; account: string }> = ({
             <DepositForm pool={pool} account={account} />
           </Grid>
           <Grid item xs={12} md>
-            <WithdrawForm account={account} balance={balance} />
+            <WithdrawForm balance={balance} />
           </Grid>
         </Grid>
       )}

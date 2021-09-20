@@ -29,7 +29,6 @@ export const AdelSwap: React.FC = () => {
                 api.swap.getUserVAkroBalance$(account),
                 api.swap.getUserDueToUnlockAkro$(account),
                 api.swap.getSwapDates$(),
-                of(account),
               ])
             : of(null)
         )
@@ -53,13 +52,7 @@ export const AdelSwap: React.FC = () => {
                 );
               }
 
-              const [
-                availableToClaim,
-                balance,
-                dueUnlock,
-                swapDates,
-                account,
-              ] = data;
+              const [availableToClaim, balance, dueUnlock, swapDates] = data;
 
               return (
                 <Grid container spacing={2} alignItems="stretch">
@@ -72,10 +65,7 @@ export const AdelSwap: React.FC = () => {
                         <Typography className={classes.value} gutterBottom>
                           {availableToClaim.toFormattedString()}
                         </Typography>
-                        <ClaimButton
-                          disabled={availableToClaim.isZero()}
-                          account={account}
-                        />
+                        <ClaimButton disabled={availableToClaim.isZero()} />
                       </CardContent>
                     </Card>
                   </Grid>
@@ -165,28 +155,19 @@ const useStyles = makeStyles({
   },
 });
 
-function ClaimButton({
-  account,
-  disabled,
-}: {
-  account: string;
-  disabled?: boolean;
-}) {
+function ClaimButton({ disabled }: { disabled?: boolean }) {
   const api = useApi();
 
-  const claiming = useCommunication(
-    (account: string) => {
-      return api.swap.claim(account);
-    },
-    [api]
-  );
+  const claiming = useCommunication(() => {
+    return api.swap.claim();
+  }, [api]);
 
   const handleSubmit: React.FormEventHandler<HTMLFormElement> = useCallback(
     (event) => {
       event.preventDefault();
-      claiming.execute(account);
+      claiming.execute();
     },
-    [claiming, account]
+    [claiming]
   );
 
   return (

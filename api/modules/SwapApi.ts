@@ -1,37 +1,32 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable class-methods-use-this */
 import { Token, TokenAmount } from "@akropolis-web/primitives";
-import { BehaviorSubject, combineLatest, Observable, timer } from "rxjs";
+import { combineLatest, Observable, timer } from "rxjs";
 import * as R from "ramda";
 import { map, switchMap } from "rxjs/operators";
 
 import { createVestedAkro } from "../../generated/contracts";
 import { memoize } from "../../utils/decorators";
-import { getCurrentValueOrThrow } from "../../utils/rxjs";
 
 import { Erc20Api } from "./Erc20Api";
 import { Contracts } from "../types";
 import { Web3Manager } from "./Web3Manager";
+import { TransactionsApi } from "./TransactionsApi";
 
 const WEB3_LONG_POOLING_TIMEOUT = 15 * 60 * 1000;
 
 export class SwapApi {
   private vestedAkroReadonlyContract: Contracts["vestedAkro"];
-  private vestedAkroTxContract = new BehaviorSubject<
-    null | Contracts["vestedAkro"]
-  >(null);
 
-  constructor(private web3Manager: Web3Manager, private erc20: Erc20Api) {
+  constructor(
+    private web3Manager: Web3Manager,
+    private transactions: TransactionsApi,
+    private erc20: Erc20Api
+  ) {
     this.vestedAkroReadonlyContract = createVestedAkro(
       this.web3Manager.web3,
       vAkroToken.address
     );
-
-    this.web3Manager.txWeb3$
-      .pipe(
-        map((txWeb3) => txWeb3 && createVestedAkro(txWeb3, vAkroToken.address))
-      )
-      .subscribe(this.vestedAkroTxContract);
   }
 
   @memoize()
@@ -94,10 +89,12 @@ export class SwapApi {
     ]).pipe(map(([balance, claimable]) => balance.sub(claimable)));
   }
 
-  public claim = async (address: string) => {
-    return getCurrentValueOrThrow(
-      this.vestedAkroTxContract
-    ).methods.unlockAndRedeemAll(undefined, { from: address });
+  public claim = async () => {
+    return this.transactions.send(
+      this.vestedAkroReadonlyContract.methods.unlockAndRedeemAll.getTransaction(
+        undefined
+      )
+    );
   };
 }
 

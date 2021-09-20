@@ -12,17 +12,16 @@ import { TokenAmount } from "@akropolis-web/primitives";
 import { makeStyles } from "@material-ui/core";
 
 type Props = {
-  account: string;
   balance: TokenAmount;
 };
 
-export const WithdrawForm: React.FC<Props> = ({ account, balance }) => {
+export const WithdrawForm: React.FC<Props> = ({ balance }) => {
   const classes = useStyles();
   const api = useApi();
 
   const withdrawing = useCommunication(() => {
-    return api.staking.withdraw(account);
-  }, [api, account]);
+    return api.staking.withdraw();
+  }, [api]);
 
   const handleSubmit: React.FormEventHandler<HTMLFormElement> = useCallback(
     (event) => {

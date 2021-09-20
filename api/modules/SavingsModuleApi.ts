@@ -1,11 +1,4 @@
-import {
-  BehaviorSubject,
-  Observable,
-  of,
-  timer,
-  combineLatest,
-  throwError,
-} from "rxjs";
+import { Observable, of, timer, combineLatest, throwError } from "rxjs";
 import { map, shareReplay, switchMap } from "rxjs/operators";
 import * as R from "ramda";
 import BN from "bn.js";
@@ -27,35 +20,27 @@ import {
   createSavingsPoolToken,
 } from "../../generated/contracts";
 import { memoize } from "../../utils/decorators";
-import { getCurrentValueOrThrow, awaitFirst } from "../../utils/rxjs";
+import { awaitFirst } from "../../utils/rxjs";
 
 import { Contracts } from "../types";
 import { Web3Manager } from "./Web3Manager";
 import { getAmount } from "../../utils";
 import { SavingsPool } from "../../types";
+import { TransactionsApi } from "./TransactionsApi";
 
 const SAVINGS_MODULE_ADDRESS = "0x73fC3038B4cD8FfD07482b92a52Ea806505e5748";
 
 export class SavingsModuleApi {
   private readonlyContract: Contracts["savingsModule"];
-  private txContract = new BehaviorSubject<null | Contracts["savingsModule"]>(
-    null
-  );
 
-  constructor(private web3Manager: Web3Manager) {
+  constructor(
+    private web3Manager: Web3Manager,
+    private transactions: TransactionsApi
+  ) {
     this.readonlyContract = createSavingsModule(
       this.web3Manager.web3,
       SAVINGS_MODULE_ADDRESS
     );
-
-    this.web3Manager.txWeb3$
-      .pipe(
-        map(
-          (txWeb3) =>
-            txWeb3 && createSavingsModule(txWeb3, SAVINGS_MODULE_ADDRESS)
-        )
-      )
-      .subscribe(this.txContract);
   }
 
   @memoize()
@@ -223,12 +208,11 @@ export class SavingsModuleApi {
       this.getUserBalance$(poolAddress, from)
     );
 
-    return getCurrentValueOrThrow(this.txContract).methods.withdrawAll(
-      {
+    return this.transactions.send(
+      this.readonlyContract.methods.withdrawAll.getTransaction({
         _protocol: poolAddress,
         nAmount: userBalance.toBN(),
-      },
-      { from }
+      })
     );
   }
 
@@ -245,14 +229,13 @@ export class SavingsModuleApi {
       this.getMaxWithdrawAmount$(from, poolAddress, tokenAddress)
     );
 
-    return getCurrentValueOrThrow(this.txContract).methods.withdraw(
-      {
+    return this.transactions.send(
+      this.readonlyContract.methods.withdraw.getTransaction({
         _protocol: poolAddress,
         token: tokenAddress,
         dnAmount: maxAmount.toBN(),
         maxNAmount: new BN(0),
-      },
-      { from }
+      })
     );
   }
 

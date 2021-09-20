@@ -6,16 +6,20 @@ import { max, min, Token, TokenAmount } from "@akropolis-web/primitives";
 
 import { createStakingPool } from "../../generated/contracts";
 import { memoize } from "../../utils/decorators";
-import { getCurrentValueOrThrow } from "../../utils/rxjs";
 import { Contracts } from "../types";
 import { Web3Manager } from "./Web3Manager";
 import { StakingPool, SimplePoolReward } from "../../types";
 import { Erc20Api } from "./Erc20Api";
+import { TransactionsApi } from "./TransactionsApi";
 
 const WEB3_LONG_POOLING_TIMEOUT = 15 * 60 * 1000;
 
 export class StakingModuleApi {
-  constructor(private web3Manager: Web3Manager, private erc20: Erc20Api) {}
+  constructor(
+    private web3Manager: Web3Manager,
+    private transactions: TransactionsApi,
+    private erc20: Erc20Api
+  ) {}
 
   @memoize((...args: string[]) => args.join())
   public getUserSimplePoolRewards$(
@@ -273,34 +277,24 @@ export class StakingModuleApi {
   public async deposit(amount: TokenAmount, account: string) {
     await this.erc20.approve(account, adelStakingPool.address, amount);
 
-    return this.getPoolTxContract(adelStakingPool.address).methods.stake(
-      {
+    return this.transactions.send(
+      this.getPoolReadonlyContract(
+        adelStakingPool.address
+      ).methods.stake.getTransaction({
         _amount: amount.toBN(),
         _data: "0x00",
-      },
-      {
-        from: account,
-      }
+      })
     );
   }
 
-  public async withdraw(account: string) {
-    return this.getPoolTxContract(
-      adelStakingPool.address
-    ).methods.unstakeAllUnlocked(
-      {
+  public async withdraw() {
+    return this.transactions.send(
+      this.getPoolReadonlyContract(
+        adelStakingPool.address
+      ).methods.unstakeAllUnlocked.getTransaction({
         _data: "0x00",
-      },
-      {
-        from: account,
-      }
+      })
     );
-  }
-
-  private getPoolTxContract(address: string): Contracts["stakingPool"] {
-    const txWeb3 = getCurrentValueOrThrow(this.web3Manager.txWeb3$);
-
-    return createStakingPool(txWeb3, address);
   }
 
   private getPoolReadonlyContract(address: string): Contracts["stakingPool"] {

@@ -1,4 +1,4 @@
-import { combineLatest, of, Observable, BehaviorSubject } from "rxjs";
+import { combineLatest, of, Observable } from "rxjs";
 import { switchMap, map } from "rxjs/operators";
 import { TokenAmount, isEqualHex } from "@akropolis-web/primitives";
 import * as R from "ramda";
@@ -7,25 +7,23 @@ import { memoize } from "../../utils/decorators";
 import { createRewardDistributionModule } from "../../generated/contracts";
 import { Web3Manager } from "./Web3Manager";
 import { PoolRewards, SimplePoolReward } from "../../types";
-import { getCurrentValueOrThrow } from "../../utils/rxjs";
 
 import { SavingsModuleApi } from "./SavingsModuleApi";
 import { StakingModuleApi } from "./StakingModuleApi";
 import { Contracts } from "../types";
 import { Erc20Api } from "./Erc20Api";
 import { isSavingsPool } from "../../utils";
+import { TransactionsApi } from "./TransactionsApi";
 
 const REWARD_DISTRIBUTION_MODULE_ADDRESS =
   "0x84056675382c851cf42FAAFCeC3FCa90E21AE645";
 
 export class RewardsApi {
   private readonlyContract: Contracts["rewardDistributionModule"];
-  private txContract = new BehaviorSubject<
-    null | Contracts["rewardDistributionModule"]
-  >(null);
 
   constructor(
     private web3Manager: Web3Manager,
+    private transactions: TransactionsApi,
     private savings: SavingsModuleApi,
     private staking: StakingModuleApi,
     private erc20: Erc20Api
@@ -34,22 +32,9 @@ export class RewardsApi {
       this.web3Manager.web3,
       REWARD_DISTRIBUTION_MODULE_ADDRESS
     );
-
-    this.web3Manager.txWeb3$
-      .pipe(
-        map(
-          (txWeb3) =>
-            txWeb3 &&
-            createRewardDistributionModule(
-              txWeb3,
-              REWARD_DISTRIBUTION_MODULE_ADDRESS
-            )
-        )
-      )
-      .subscribe(this.txContract);
   }
 
-  public async withdrawUserRewards(from: string, rewards: SimplePoolReward[]) {
+  public async withdrawUserRewards(rewards: SimplePoolReward[]) {
     const res = rewards.reduce(
       (acc, poolsRewards) => {
         const poolTokens = isSavingsPool(poolsRewards.pool)
@@ -66,9 +51,9 @@ export class RewardsApi {
       { poolTokens: [] as string[], rewardTokens: [] as string[] }
     );
 
-    return getCurrentValueOrThrow(this.txContract).methods.withdrawReward(res, {
-      from,
-    });
+    return this.transactions.send(
+      this.readonlyContract.methods.withdrawReward.getTransaction(res)
+    );
   }
 
   @memoize(R.identity)

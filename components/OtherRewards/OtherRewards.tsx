@@ -42,14 +42,18 @@ export const OtherRewards: React.FC = () => {
           <Loading data={rewardsDataRD}>
             {(data) => {
               if (!data) {
-                return <Typography>Connect to the wallet to see details</Typography>;
+                return (
+                  <Typography>Connect to the wallet to see details</Typography>
+                );
               }
 
               const [rewardsData, account] = data;
               const hasUserRewards = rewardsData && rewardsData.length > 0;
 
               if (!hasUserRewards) {
-                return <Typography>You don't have any Other rewards</Typography>;
+                return (
+                  <Typography>You don't have any Other rewards</Typography>
+                );
               }
 
               return (
@@ -57,7 +61,6 @@ export const OtherRewards: React.FC = () => {
                   <Grid item xs={12}>
                     {hasUserRewards && (
                       <WithdrawButton
-                        account={account}
                         rewards={rewardsData
                           .map(({ rewards }) => rewards)
                           .flat()}
@@ -108,7 +111,7 @@ function PoolRewardsList({
               <Grid item>{reward.amount.toFormattedString()}</Grid>
             </Box>
             <Grid item>
-              <WithdrawButton account={account} rewards={[reward]} />
+              <WithdrawButton rewards={[reward]} />
             </Grid>
           </Grid>
         </Box>
@@ -118,12 +121,10 @@ function PoolRewardsList({
 }
 
 function WithdrawButton({
-  account,
   rewards,
   title = "Withdraw",
   buttonSize = "medium",
 }: {
-  account: string;
   rewards: SimplePoolReward[];
   title?: string;
   buttonSize?: "medium" | "large";
@@ -131,18 +132,18 @@ function WithdrawButton({
   const api = useApi();
 
   const withdrawing = useCommunication(
-    (account: string, rewards: SimplePoolReward[]) => {
-      return api.rewards.withdrawUserRewards(account, rewards);
+    (rewards: SimplePoolReward[]) => {
+      return api.rewards.withdrawUserRewards(rewards);
     },
-    [api, account, rewards]
+    [api, rewards]
   );
 
   const handleSubmit: React.FormEventHandler<HTMLFormElement> = useCallback(
     (event) => {
       event.preventDefault();
-      withdrawing.execute(account, rewards);
+      withdrawing.execute(rewards);
     },
-    [withdrawing, account, rewards]
+    [withdrawing, rewards]
   );
 
   return (
